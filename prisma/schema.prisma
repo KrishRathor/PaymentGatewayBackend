@@ -15,4 +15,5 @@ model Merchant {
     email String
     contact BigInt
     verified Boolean @default(false)
+    apiKey String
 }

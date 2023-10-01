@@ -1,6 +1,14 @@
 import { PrismaClient } from "@prisma/client";
+import { randomBytes } from "crypto";
+import * as qr from "qrcode";
 
 const prisma = new PrismaClient();
+
+const generateRandomHex = (): string => {
+    const randomBuffer = randomBytes(Math.ceil(8));
+    const hexString = randomBuffer.toString('hex').slice(0, length);
+    return hexString;
+} 
 
 const merchantOnboarding = async (
     merchantName: string, 
@@ -10,12 +18,16 @@ const merchantOnboarding = async (
     ) => {
 
         try {
+
+            const randomHex = generateRandomHex()
+
             await prisma.merchant.create({
                 data: {
                     name: merchantName,
                     publicKey: marchantPublickey,
                     email: merchantEmail,
                     contact: merchantContactNumber,
+                    apiKey: randomHex,
                     verified: false
                 }
             })
@@ -27,17 +39,19 @@ const merchantOnboarding = async (
             await prisma.$disconnect();
         }
 
-
 }
 
-merchantOnboarding("newname", "key", "email", 123)
-    .then(async () => {
-        await prisma.$disconnect();
-    })
-    .catch(async e => {
-        console.error(e);
-        await prisma.$disconnect();
-        process.exit(1);
-    })
+interface QRData {
+    id: string,
+    amount: number,
+    unit: string
+}
 
-module.exports = { merchantOnboarding };
+const generateQRCode = async (data: QRData): Promise<string> => {
+    const qrText = JSON.stringify(data);
+    const qrCodeBuffer = await qr.toBuffer(qrText);
+    const base64Image = qrCodeBuffer.toString('base64');
+    return `data:image/png;base64,${base64Image}`;
+}
+
+module.exports = { generateQRCode };
