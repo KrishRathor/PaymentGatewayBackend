@@ -1,32 +1,43 @@
-import { PublicKey } from "@solana/web3.js";
-import fs from "fs";
+import { PrismaClient } from "@prisma/client";
 
-const appendToFile = (filePath: string, content: string): boolean => {
-    try {
-        fs.appendFileSync(filePath, content, 'utf-8');
-        console.log("Written to file successfully");
-        return true;
-    }
-    catch (error) {
-        console.log("An Error occured ", error);
-        return false;
-    }
-}
+const prisma = new PrismaClient();
 
-const merchantOnboarding = (
+const merchantOnboarding = async (
     merchantName: string, 
     marchantPublickey: string,
     merchantEmail: string,
     merchantContactNumber: number
     ) => {
 
-        const info = {
-            name: merchantName,
-            publicKey: marchantPublickey,
-            email: merchantEmail,
-            contact: merchantContactNumber
+        try {
+            await prisma.merchant.create({
+                data: {
+                    name: merchantName,
+                    publicKey: marchantPublickey,
+                    email: merchantEmail,
+                    contact: merchantContactNumber,
+                    verified: false
+                }
+            })
+            console.log("Merchant successfully onboarded!");
+        } catch (error) {
+            console.error(error);
+            throw error;
+        } finally {
+            await prisma.$disconnect();
         }
 
-        const writeToFile = appendToFile("./demo.txt", JSON.stringify(info));
 
 }
+
+merchantOnboarding("newname", "key", "email", 123)
+    .then(async () => {
+        await prisma.$disconnect();
+    })
+    .catch(async e => {
+        console.error(e);
+        await prisma.$disconnect();
+        process.exit(1);
+    })
+
+module.exports = { merchantOnboarding };
